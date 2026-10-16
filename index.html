@@ -1,0 +1,413 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Starling Forces Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: lab bench — sticky control rack on the left, two matched flux traces + game deck on the right */
+:root{
+  --bg:#f2f5f7; --panel:#ffffff; --ink:#13212c; --muted:#5a6b78; --line:#d5dde4; --soft:#e8eef2;
+  --filt:#b8325a; --filt-fill:rgba(184,50,90,.18);
+  --abs:#0d7a8a; --abs-fill:rgba(13,122,138,.20);
+  --accent:#3646a8; --good:#2f7d32; --bad:#b3261e;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d151c; --panel:#141f29; --ink:#e3ebf1; --muted:#93a5b3; --line:#283846; --soft:#1b2935;
+  --filt:#f0739a; --filt-fill:rgba(240,115,154,.20);
+  --abs:#45c4d4; --abs-fill:rgba(69,196,212,.20);
+  --accent:#9aa8ff; --good:#7bc67e; --bad:#ff8a80; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0d151c; --panel:#141f29; --ink:#e3ebf1; --muted:#93a5b3; --line:#283846; --soft:#1b2935;
+  --filt:#f0739a; --filt-fill:rgba(240,115,154,.20);
+  --abs:#45c4d4; --abs-fill:rgba(69,196,212,.20);
+  --accent:#9aa8ff; --good:#7bc67e; --bad:#ff8a80; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:.005em}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+header h1{font-size:clamp(28px,4vw,40px);font-weight:700;line-height:1.05}
+header p{margin:6px 0 0;color:var(--muted);max-width:68ch}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+/* controls */
+.rack{position:sticky;top:12px;padding:16px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:900px){.rack{position:static;max-height:none}}
+.group{display:flex;flex-direction:column;gap:10px}
+.group h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:4px}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13.5px}
+.ctl label .sym{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:4px}
+.ctl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+.ctl small{display:block;color:var(--muted);font-size:12px;line-height:1.35;margin-top:1px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0 0}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:500 13px var(--f-body);padding:7px 6px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--panel)}
+.btn{font:500 13.5px var(--f-body);padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* charts */
+.right{display:flex;flex-direction:column;gap:18px;min-width:0}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:1100px){.charts{grid-template-columns:1fr}}
+.chart{padding:14px 14px 10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.chart-head h2{font-size:21px;font-weight:600}
+.eq{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);margin-top:2px}
+.eq b{color:var(--ink);font-weight:500}
+.net{text-align:right}
+.net .val{font-family:var(--f-mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.net .lab{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;margin-top:3px}
+.pill.f{background:var(--filt-fill);color:var(--filt)}
+.pill.a{background:var(--abs-fill);color:var(--abs)}
+.pill.z{background:var(--soft);color:var(--muted)}
+svg.plot{width:100%;height:auto;display:block}
+svg.plot text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.ends{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.end{background:var(--soft);border-radius:7px;padding:7px 9px;font-size:12px;line-height:1.45}
+.end .t{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.end .r{display:flex;justify-content:space-between;gap:6px}
+.end .r span:last-child{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-2px;margin-right:5px}
+.summary{padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 28px;align-items:center}
+.summary .k{font-size:12.5px;color:var(--muted)}
+.summary .v{font-family:var(--f-mono);font-size:17px;font-variant-numeric:tabular-nums}
+/* game deck */
+.deck{padding:16px;display:flex;flex-direction:column;gap:14px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{font:600 14px var(--f-display);letter-spacing:.03em;background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--accent)}
+.score{margin-left:auto;align-self:center;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.scn-list{display:flex;flex-wrap:wrap;gap:6px}
+.scn-list button{font:500 13px var(--f-body);padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.scn-list button[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.scn-list button .st{font-family:var(--f-mono);margin-left:6px;font-size:12px}
+.scn-list button .st.ok{color:var(--good)} .scn-list button .st.no{color:var(--bad)}
+.scn h3{font-size:22px;font-weight:600}
+.scn p{margin:6px 0;max-width:72ch}
+.scn .task{background:var(--soft);border-radius:8px;padding:10px 12px;font-size:14px;max-width:none}
+.opts{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+.opts button{text-align:left;font:400 14px var(--f-body);padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;line-height:1.4}
+.opts button:hover:not(:disabled){border-color:var(--accent)}
+.opts button.right{border-color:var(--good);box-shadow:inset 3px 0 0 var(--good)}
+.opts button.wrong{border-color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
+.opts button:disabled{cursor:default}
+.fb{border-left:3px solid var(--accent);padding:6px 12px;font-size:14px}
+.fb strong{font-family:var(--f-display);font-size:15px}
+.missions{display:flex;flex-direction:column;gap:10px}
+.mission{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+.mission .badge{grid-row:span 2;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.mission.done .badge{border-color:var(--good);background:var(--good);color:var(--panel)}
+.mission b{font-family:var(--f-display);font-size:16px;font-weight:600}
+.mission .live{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 22px;font-size:14px}
+.notes h4{font-family:var(--f-display);font-size:16px;margin:0 0 4px}
+.notes p{margin:0 0 6px}
+.cite{font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.opts button,.btn,.seg button{transition:border-color .15s,background .15s}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Microvascular fluid exchange · interactive lab</div>
+    <h1>Starling Forces Lab</h1>
+    <p>Compare the traditional Starling principle with the revised (glycocalyx) model. Both traces plot local transcapillary flux from the arteriolar to the venular end; the shaded area is the net flux, J<sub>v</sub>.</p>
+  </div>
+  <div class="legend" aria-label="Legend">
+    <span><i style="background:var(--filt)"></i>Filtration (out of capillary)</span>
+    <span><i style="background:var(--abs)"></i>Absorption (into capillary)</span>
+    <span><i style="background:none;border:1.5px dashed var(--muted)"></i>Other model, for comparison</span>
+  </div>
+</header>
+
+<div class="grid">
+  <aside class="panel rack" aria-label="Starling force controls">
+    <div class="group">
+      <h3>Hydrostatic pressures</h3>
+      <div class="ctl"><label for="pa">Capillary, arteriolar end <span><span class="sym">P<sub>c</sub></span> <output id="pa-o"></output></span></label><input type="range" id="pa" min="5" max="70" step="1"></div>
+      <div class="ctl"><label for="pv">Capillary, venular end <span><span class="sym">P<sub>c</sub></span> <output id="pv-o"></output></span></label><input type="range" id="pv" min="0" max="50" step="1"><small>P<sub>c</sub> falls linearly between the two ends.</small></div>
+      <div class="ctl"><label for="pi">Interstitial <span><span class="sym">P<sub>i</sub></span> <output id="pi-o"></output></span></label><input type="range" id="pi" min="-8" max="15" step="0.5"></div>
+    </div>
+    <div class="group">
+      <h3>Oncotic pressures</h3>
+      <div class="ctl"><label for="pic">Capillary (plasma) <span><span class="sym">π<sub>c</sub></span> <output id="pic-o"></output></span></label><input type="range" id="pic" min="5" max="45" step="0.5"></div>
+      <div class="ctl"><label for="pii">Interstitial <span><span class="sym">π<sub>i</sub></span> <output id="pii-o"></output></span></label><input type="range" id="pii" min="0" max="25" step="0.5"></div>
+      <div class="ctl"><label for="pig">Subglycocalyx <span><span class="sym">π<sub>g</sub></span> <output id="pig-o"></output></span></label><input type="range" id="pig" min="0" max="25" step="0.5"><small>Revised model only. In steady state this is the value when filtration is brisk; it rises toward π<sub>i</sub> as filtration slows.</small></div>
+    </div>
+    <div class="group">
+      <h3>Barrier properties</h3>
+      <div class="ctl"><label for="sig">Reflection coefficient <span><span class="sym">σ</span> <output id="sig-o"></output></span></label><input type="range" id="sig" min="0" max="1" step="0.01"></div>
+      <div class="ctl"><label for="lp">Hydraulic conductivity <span><span class="sym">L<sub>p</sub></span> <output id="lp-o"></output></span></label><input type="range" id="lp" min="0.2" max="8" step="0.1"><small>×10⁻⁷ cm·s⁻¹·mmHg⁻¹</small></div>
+      <div class="ctl"><label for="s">Perfused surface area <span><span class="sym">S</span> <output id="s-o"></output></span></label><input type="range" id="s" min="10" max="500" step="5"><small>Scales net J<sub>v</sub> only; the local flux per cm² is unchanged.</small></div>
+    </div>
+    <div class="group">
+      <h3>Revised model state</h3>
+      <div class="seg" role="group" aria-label="Revised model state">
+        <button id="m-steady" aria-pressed="true">Steady state</button>
+        <button id="m-trans" aria-pressed="false">Transient</button>
+      </div>
+      <small id="mode-note" style="color:var(--muted);font-size:12px"></small>
+    </div>
+    <button class="btn" id="reset">Reset to baseline</button>
+  </aside>
+
+  <div class="right">
+    <div class="charts">
+      <section class="panel chart" aria-labelledby="h-trad">
+        <div class="chart-head">
+          <div>
+            <h2 id="h-trad">Traditional Starling</h2>
+            <div class="eq">J<sub>v</sub> = L<sub>p</sub>S [(P<sub>c</sub> − P<sub>i</sub>) − σ(π<sub>c</sub> − <b>π<sub>i</sub></b>)]</div>
+          </div>
+          <div class="net"><div class="lab">Net J<sub>v</sub></div><div class="val" id="jv-t"></div><span class="pill" id="pill-t"></span></div>
+        </div>
+        <svg class="plot" id="svg-t" viewBox="0 0 600 300" role="img" aria-label="Traditional model flux along capillary"></svg>
+        <div class="ends" id="ends-t"></div>
+      </section>
+      <section class="panel chart" aria-labelledby="h-rev">
+        <div class="chart-head">
+          <div>
+            <h2 id="h-rev">Revised (glycocalyx) Starling</h2>
+            <div class="eq">J<sub>v</sub> = L<sub>p</sub>S [(P<sub>c</sub> − P<sub>i</sub>) − σ(π<sub>c</sub> − <b>π<sub>g</sub></b>)]</div>
+          </div>
+          <div class="net"><div class="lab">Net J<sub>v</sub></div><div class="val" id="jv-r"></div><span class="pill" id="pill-r"></span></div>
+        </div>
+        <svg class="plot" id="svg-r" viewBox="0 0 600 300" role="img" aria-label="Revised model flux along capillary"></svg>
+        <div class="ends" id="ends-r"></div>
+      </section>
+    </div>
+
+    <div class="panel summary" id="summary"></div>
+
+    <section class="panel deck" aria-label="Game">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-scn" aria-selected="true">Clinical scenarios</button>
+        <button role="tab" id="tab-mis" aria-selected="false">Slider missions</button>
+        <button role="tab" id="tab-notes" aria-selected="false">Model notes</button>
+        <span class="score" id="score"></span>
+      </div>
+      <div id="pane-scn">
+        <div class="scn-list" id="scn-list"></div>
+        <div class="scn" id="scn" style="margin-top:14px"></div>
+      </div>
+      <div id="pane-mis" hidden>
+        <p style="margin:0 0 10px;color:var(--muted)">Move the sliders until each mission's condition is true. Missions check themselves live.</p>
+        <div class="missions" id="missions"></div>
+      </div>
+      <div id="pane-notes" hidden>
+        <div class="notes">
+          <div><h4>The traditional view</h4><p>Pressure falls along the capillary while plasma oncotic pressure stays fixed. Filtration at the arteriolar end is followed by absorption at the venular end, so most filtered fluid is predicted to return to the capillary. The opposing oncotic pressure is the plasma minus <em>interstitial</em> value.</p></div>
+          <div><h4>The revised view</h4><p>The endothelial glycocalyx is the semipermeable layer. Fluid filtered through it enters a small space beneath it that is washed by filtrate, so its protein concentration (π<sub>g</sub>) stays low. The relevant oncotic gradient is π<sub>c</sub> − π<sub>g</sub>, and the bulk interstitial value matters little while filtration is brisk.</p></div>
+          <div><h4>The no-absorption rule</h4><p>When filtration slows, the subglycocalyx protein concentration rises toward the interstitial value and the oncotic gradient collapses. In steady state, most capillaries filter along their whole length or approach zero flux; they do not keep absorbing. Filtrate returns to the circulation through lymph. Absorption can occur transiently (for minutes) after an abrupt fall in P<sub>c</sub>, such as after hemorrhage.</p></div>
+          <div><h4>How this lab computes it</h4><p>P<sub>c</sub> falls linearly along the capillary. In steady state, the revised model solves for flux at each point with π<sub>g,eff</sub> = π<sub>i</sub> + (π<sub>g</sub> − π<sub>i</sub>)(1 − e<sup>−L<sub>p</sub>·NDP/2</sup>), and flux is held at zero where the traditional balance would predict absorption. Transient mode uses π<sub>g</sub> as set. Local flux is shown in nL·min⁻¹·cm⁻² and net J<sub>v</sub> in µL/min. This is a teaching simplification, not a full Michel–Weinbaum model.</p></div>
+        </div>
+        <p class="cite" style="margin-top:12px">Further reading: Levick JR, Michel CC. Microvascular fluid exchange and the revised Starling principle. <em>Cardiovasc Res</em> 2010;87:198–210. Woodcock TE, Woodcock TM. Revised Starling equation and the glycocalyx model of transvascular fluid exchange. <em>Br J Anaesth</em> 2012;108:384–394.</p>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+const BASE={pa:30,pv:8,pi:-2,pic:28,pii:10,pig:2,sig:0.9,lp:1.0,s:100,mode:'steady'};
+const st={...BASE};
+const N=101, K=2;
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>(Math.abs(v)<0.05&&d<=1?0:v).toFixed(d);
+const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1);
+
+const units={pa:'mmHg',pv:'mmHg',pi:'mmHg',pic:'mmHg',pii:'mmHg',pig:'mmHg',sig:'',lp:'',s:'cm²'};
+const keys=Object.keys(units);
+keys.forEach(k=>{ $(k).addEventListener('input',e=>{st[k]=parseFloat(e.target.value);update();}); });
+function syncInputs(){ keys.forEach(k=>{$(k).value=st[k];}); setMode(st.mode,true); }
+
+function setMode(m,silent){ st.mode=m; $('m-steady').setAttribute('aria-pressed',m==='steady'); $('m-trans').setAttribute('aria-pressed',m==='transient');
+  $('mode-note').textContent = m==='steady' ? 'Steady state: π_g rises toward π_i as filtration slows, so sustained absorption does not occur.' : 'Transient: π_g is held at its set value, as in the minutes after an abrupt fall in Pc. Absorption is possible but self-limiting.';
+  if(!silent) update(); }
+$('m-steady').onclick=()=>setMode('steady'); $('m-trans').onclick=()=>setMode('transient');
+$('reset').onclick=()=>{Object.assign(st,BASE);syncInputs();update();};
+
+function pcAt(x){return st.pa+(st.pv-st.pa)*x;}
+function compute(p){
+  p=p||st;
+  const T=[],R=[];
+  for(let i=0;i<N;i++){
+    const x=i/(N-1), pc=p.pa+(p.pv-p.pa)*x, dP=pc-p.pi;
+    const ndpT=dP-p.sig*(p.pic-p.pii);
+    T.push({x,pc,ndp:ndpT,flux:6*p.lp*ndpT,pgEff:null});
+    let ndpR,pgEff;
+    if(p.mode==='transient'){ pgEff=p.pig; ndpR=dP-p.sig*(p.pic-p.pig); }
+    else if(ndpT<=0){ ndpR=0; pgEff=p.pii; }
+    else{
+      const g=y=>p.pii+(p.pig-p.pii)*(1-Math.exp(-p.lp*y/K));
+      const h=y=>y-(dP-p.sig*(p.pic-g(y)));
+      let lo=0,hi=Math.abs(ndpT)+p.sig*Math.abs(p.pii-p.pig)+1;
+      for(let it=0;it<60;it++){const m=(lo+hi)/2; if(h(m)>0)hi=m; else lo=m;}
+      ndpR=(lo+hi)/2; pgEff=g(ndpR);
+    }
+    R.push({x,pc,ndp:ndpR,flux:6*p.lp*ndpR,pgEff});
+  }
+  const net=a=>a.reduce((s,d)=>s+d.flux,0)/a.length*p.s/1000; // µL/min
+  const fsum=(a,pos)=>a.reduce((s,d)=>s+((pos?d.flux>0:d.flux<0)?d.flux:0),0)/a.length*p.s/1000;
+  return {T,R,jT:net(T),jR:net(R),filtT:fsum(T,true),absT:fsum(T,false),filtR:fsum(R,true),absR:fsum(R,false)};
+}
+
+function niceMax(v){ if(v<=0) return 10; const e=Math.pow(10,Math.floor(Math.log10(v))); const f=v/e; const n=f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10; return n*e; }
+
+function draw(svg,data,ghost,yMax){
+  const W=600,H=300,L=52,Rm=14,Tm=14,B=40,pw=W-L-Rm,ph=H-Tm-B;
+  const X=x=>L+x*pw, Y=v=>Tm+ph/2-(v/yMax)*(ph/2);
+  let s='';
+  const ticks=[-yMax,-yMax/2,0,yMax/2,yMax];
+  ticks.forEach(t=>{ s+=`<line x1="${L}" x2="${W-Rm}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)" stroke-width="${t===0?1.4:0.8}" ${t===0?'':'stroke-dasharray="2 4"'}/>`;
+    s+=`<text x="${L-6}" y="${Y(t)+4}" text-anchor="end">${+t.toFixed(1)}</text>`; });
+  [0,.25,.5,.75,1].forEach(t=>{ s+=`<text x="${X(t)}" y="${H-B+16}" text-anchor="middle">${t*100}%</text>`; });
+  s+=`<text x="${L}" y="${H-6}" text-anchor="start">Arteriolar end</text><text x="${W-Rm}" y="${H-6}" text-anchor="end">Venular end</text>`;
+  s+=`<text transform="translate(12 ${Tm+ph/2}) rotate(-90)" text-anchor="middle">nL·min⁻¹·cm⁻²</text>`;
+  const clipV=v=>Math.max(-yMax,Math.min(yMax,v));
+  // positive area
+  let pos=`M${X(0)},${Y(0)} `+data.map(d=>`L${X(d.x)},${Y(Math.max(0,clipV(d.flux)))}`).join(' ')+` L${X(1)},${Y(0)}Z`;
+  let neg=`M${X(0)},${Y(0)} `+data.map(d=>`L${X(d.x)},${Y(Math.min(0,clipV(d.flux)))}`).join(' ')+` L${X(1)},${Y(0)}Z`;
+  s+=`<path d="${pos}" fill="var(--filt-fill)" stroke="none"/><path d="${neg}" fill="var(--abs-fill)" stroke="none"/>`;
+  if(ghost) s+=`<path d="M${ghost.map(d=>`${X(d.x)},${Y(clipV(d.flux))}`).join(' L')}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  // main line colored by sign
+  for(let i=1;i<data.length;i++){const a=data[i-1],b=data[i]; const c=((a.flux+b.flux)/2)>=0.0001?'var(--filt)':((a.flux+b.flux)/2)<-0.0001?'var(--abs)':'var(--muted)';
+    s+=`<line x1="${X(a.x)}" y1="${Y(clipV(a.flux))}" x2="${X(b.x)}" y2="${Y(clipV(b.flux))}" stroke="${c}" stroke-width="2.6" stroke-linecap="round"/>`;}
+  // crossover marker
+  for(let i=1;i<data.length;i++){const a=data[i-1],b=data[i];
+    if(a.flux>0.01&&b.flux<=0.01){ const xc=a.x+(b.x-a.x)*(a.flux/(a.flux-b.flux||1));
+      s+=`<circle cx="${X(xc)}" cy="${Y(0)}" r="4.5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>`;
+      const lab=b.flux< -0.01?`Crossover ${Math.round(xc*100)}%`:`Flux reaches 0 at ${Math.round(xc*100)}%`;
+      const anchor=xc>0.7?'end':'start'; s+=`<text x="${X(xc)+(anchor==='end'?-8:8)}" y="${Y(0)-9}" text-anchor="${anchor}" style="fill:var(--ink)">${lab}</text>`; break;}}
+  svg.innerHTML=s;
+}
+
+function endsHTML(arr,rev){
+  const e=(d,t)=>`<div class="end"><div class="t">${t}</div>
+    <div class="r"><span>P<sub>c</sub> − P<sub>i</sub></span><span>${fmt(d.pc-st.pi)}</span></div>
+    <div class="r"><span>σ(π<sub>c</sub> − π<sub>${rev?'g':'i'}</sub>)</span><span>${fmt(st.sig*(st.pic-(rev?d.pgEff:st.pii)))}</span></div>
+    ${rev?`<div class="r"><span>π<sub>g</sub> effective</span><span>${fmt(d.pgEff)}</span></div>`:''}
+    <div class="r"><span><b>Net driving pressure</b></span><span><b>${sgn(d.ndp)}</b></span></div></div>`;
+  return e(arr[0],'Arteriolar end · mmHg')+e(arr[arr.length-1],'Venular end · mmHg');
+}
+function pill(el,v){ const a=Math.abs(v)<0.005; el.className='pill '+(a?'z':v>0?'f':'a'); el.textContent=a?'≈ zero flux':v>0?'Net filtration':'Net absorption'; }
+
+let last=null;
+function update(){
+  keys.forEach(k=>{ const v=st[k]; $(k+'-o').textContent=(k==='sig'?v.toFixed(2):k==='lp'?v.toFixed(1):k==='s'?v.toFixed(0):fmt(v))+(units[k]?' '+units[k]:''); });
+  const c=compute(); last=c;
+  const yMax=niceMax(Math.max(...c.T.map(d=>Math.abs(d.flux)),...c.R.map(d=>Math.abs(d.flux)))*1.08);
+  draw($('svg-t'),c.T,c.R,yMax); draw($('svg-r'),c.R,c.T,yMax);
+  $('jv-t').textContent=sgn(c.jT)+' µL/min'; $('jv-r').textContent=sgn(c.jR)+' µL/min';
+  pill($('pill-t'),c.jT); pill($('pill-r'),c.jR);
+  $('ends-t').innerHTML=endsHTML(c.T,false); $('ends-r').innerHTML=endsHTML(c.R,true);
+  const lymph=v=>v>0?v.toFixed(1)+' µL/min':'—';
+  $('summary').innerHTML=`
+    <div><div class="k">Traditional: filtered / absorbed</div><div class="v">${c.filtT.toFixed(1)} / ${Math.abs(c.absT).toFixed(1)}</div></div>
+    <div><div class="k">Revised: filtered / absorbed</div><div class="v">${c.filtR.toFixed(1)} / ${Math.abs(c.absR).toFixed(1)}</div></div>
+    <div><div class="k">Share of filtrate returned by capillary (trad. / rev.)</div><div class="v">${c.filtT>0?Math.round(100*Math.min(1,Math.abs(c.absT)/c.filtT)):0}% / ${c.filtR>0?Math.round(100*Math.min(1,Math.abs(c.absR)/c.filtR)):0}%</div></div>
+    <div><div class="k">Lymph flow needed at steady state (revised)</div><div class="v">${lymph(c.jR)}</div></div>`;
+  checkMissions(c);
+}
+
+/* ---------- Scenarios ---------- */
+const SCN=[
+ {id:'base',name:'Where does filtrate go?',preset:{},
+  story:'A healthy skeletal-muscle capillary bed at rest. Look at both traces with the baseline values.',
+  task:'Compare the venular ends. The traditional curve dips below zero; the revised curve in steady state does not.',
+  q:'According to the revised model, how does most fluid filtered at the arteriolar end return to the circulation?',
+  opts:['It is absorbed back into the venular end of the same capillary','It returns via lymphatic vessels','It is absorbed by post-capillary venules downstream','It stays in the interstitium until it evaporates through skin'],
+  ans:1,exp:'In steady state, the revised model has no sustained venular absorption, so net filtration equals lymph flow. The traditional model instead predicts that part of the filtrate comes back across the venular capillary wall. Measured lymph flows are consistent with the revised prediction.'},
+ {id:'pii',name:'Does interstitial protein matter?',preset:{},
+  story:'Classic teaching says that a rise in interstitial oncotic pressure pulls fluid out of the capillary.',
+  task:'Slowly drag π_i from 0 to about 14 mmHg and watch the arteriolar ends of both traces.',
+  q:'Which statement best describes what you saw at the arteriolar end?',
+  opts:['Both models respond equally to π_i','The traditional model responds strongly; the revised model barely changes while filtration is brisk','The revised model responds strongly; the traditional model barely changes','Neither model is affected by π_i'],
+  ans:1,exp:'The revised model compares plasma with the subglycocalyx fluid, which is washed by filtrate and stays low in protein while filtration is brisk. Bulk interstitial oncotic pressure only matters when filtration is slow, because then the subglycocalyx fluid equilibrates with the interstitium.'},
+ {id:'hem',name:'Hemorrhage',preset:{pa:18,pv:8},
+  story:'A dog has lost about 25% of its blood volume. Arteriolar vasoconstriction lowers capillary hydrostatic pressure to 18 mmHg at the arteriolar end and 8 mmHg at the venular end.',
+  task:'Compare the traces in steady state, then switch the revised model to Transient.',
+  q:'What does the revised model predict about "autotransfusion" from the interstitium?',
+  opts:['Sustained absorption along the full capillary refills plasma volume indefinitely','Absorption occurs only briefly (minutes) and then flux settles near zero','No absorption is possible at any time','Filtration increases because plasma oncotic pressure rises'],
+  ans:1,exp:'Abrupt falls in P_c allow transient absorption while the subglycocalyx space is still low in protein. As fluid is absorbed, protein in that space and in the nearby interstitium concentrates, the oncotic gradient collapses, and flux approaches zero. Autotransfusion is real but limited in volume.'},
+ {id:'colloid',name:'Colloid in a hypotensive patient',preset:{pa:16,pv:8,pic:34},
+  story:'A hypotensive patient receives synthetic colloid, raising plasma oncotic pressure to 34 mmHg. P_c is low throughout the capillary.',
+  task:'Drag π_c between 20 and 40 mmHg while P_c stays low. Watch each model\'s net J_v.',
+  q:'In steady state, what does the revised model predict about raising π_c when P_c is already low?',
+  opts:['It pulls large volumes of interstitial fluid into the capillary','It has little effect, because flux is already near zero','It increases filtration','It reverses the direction of lymph flow'],
+  ans:1,exp:'Below the point where filtration stops, the revised model predicts near-zero flux whatever π_c is. This is one reason colloid and crystalloid have similar effects at low capillary pressure (a context-sensitive volume effect). The traditional model wrongly predicts large absorption.'},
+ {id:'gly',name:'Glycocalyx injury in sepsis',preset:{pig:9,pii:9,sig:0.6,lp:3},
+  story:'A septic patient has shed glycocalyx. The subglycocalyx space now has a protein concentration close to the interstitium, the barrier lets more protein through, and hydraulic conductivity has tripled.',
+  task:'Press Reset to compare with baseline, then reload this scenario. Try restoring σ and L_p one at a time.',
+  q:'In the revised model, which change explains the largest part of the increase in filtration here?',
+  opts:['Higher π_g alone','Higher L_p and lower σ (a leakier, more permeable barrier)','Higher interstitial hydrostatic pressure','Lower capillary hydrostatic pressure'],
+  ans:1,exp:'Raising π_g toward π_i removes some of the opposing oncotic gradient, but the larger effect here comes from tripling L_p and dropping σ to 0.6. Together these multiply the flux at every point along the capillary. Restore L_p to 1.0 and σ to 0.9 to see filtration fall back toward baseline.'},
+ {id:'hyp',name:'Hypoalbuminemia',preset:{pic:13,pii:3,pig:1},
+  story:'A dog with protein-losing enteropathy has plasma COP of 13 mmHg. Interstitial COP has also fallen.',
+  task:'Compare the venular ends with the baseline picture.',
+  q:'What do both models now predict at the venular end?',
+  opts:['Strong absorption','Filtration continues all the way to the venular end','Zero flux everywhere','Absorption only in the revised model'],
+  ans:1,exp:'With a low plasma COP, net driving pressure stays positive along the whole capillary in both models. Edema follows only when filtration exceeds the lymphatic reserve. A fall in interstitial COP and an increase in lymph flow both limit edema, which is why many hypoalbuminemic animals do not develop edema until COP is very low.'}
+];
+const answered={};
+let cur='base';
+function renderList(){
+  $('scn-list').innerHTML=SCN.map(s=>{const a=answered[s.id]; return `<button data-id="${s.id}" aria-pressed="${s.id===cur}">${s.name}${a?`<span class="st ${a.ok?'ok':'no'}">${a.ok?'✓':'✗'}</span>`:''}</button>`;}).join('');
+  $('scn-list').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=b.dataset.id;loadScn(true);});
+  const n=Object.values(answered).filter(a=>a.ok).length;
+  $('score').textContent=`Score ${n}/${SCN.length}`;
+}
+function loadScn(apply){
+  const s=SCN.find(x=>x.id===cur);
+  if(apply){Object.assign(st,BASE,s.preset);syncInputs();update();}
+  const a=answered[s.id];
+  $('scn').innerHTML=`<h3>${s.name}</h3><p>${s.story.replace(/_(\w)/g,'<sub>$1</sub>')}</p>
+   <p class="task"><strong>Try it:</strong> ${s.task.replace(/_(\w)/g,'<sub>$1</sub>')}</p>
+   <p style="font-weight:600;margin-top:12px">${s.q.replace(/_(\w)/g,'<sub>$1</sub>')}</p>
+   <div class="opts">${s.opts.map((o,i)=>`<button data-i="${i}" ${a?'disabled':''} class="${a?(i===s.ans?'right':(i===a.pick?'wrong':'')):''}">${String.fromCharCode(65+i)}. ${o.replace(/_(\w)/g,'<sub>$1</sub>')}</button>`).join('')}</div>
+   ${a?`<div class="fb" style="margin-top:10px"><strong>${a.ok?'Correct.':'Not quite.'}</strong> ${s.exp.replace(/_(\w)/g,'<sub>$1</sub>')}</div>
+   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="retry">Try again</button>${nextId()?'<button class="btn primary" id="next">Next scenario</button>':''}</div>`:''}`;
+  $('scn').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i; answered[s.id]={pick:i,ok:i===s.ans}; renderList(); loadScn(false);});
+  if(a){ $('retry').onclick=()=>{delete answered[s.id];renderList();loadScn(false);}; const n=$('next'); if(n) n.onclick=()=>{cur=nextId();renderList();loadScn(true);}; }
+  renderList();
+}
+function nextId(){const i=SCN.findIndex(x=>x.id===cur); return i<SCN.length-1?SCN[i+1].id:null;}
+
+/* ---------- Missions ---------- */
+const MIS=[
+ {name:'Starling\'s balance',desc:'Make the traditional model predict net J_v within ±0.2 µL/min of zero. Note what the revised model says at the same settings.',
+  test:c=>Math.abs(c.jT)<=0.2, live:c=>`Traditional J_v = ${sgn(c.jT)} µL/min`},
+ {name:'Two answers to one question',desc:'Find settings (steady state) where the traditional model predicts net absorption but the revised model predicts net filtration.',
+  test:c=>st.mode==='steady'&&c.jT<-0.1&&c.jR>0.1, live:c=>`Trad ${sgn(c.jT)} · Rev ${sgn(c.jR)} µL/min${st.mode!=='steady'?' · switch to steady state':''}`},
+ {name:'Make the models agree',desc:'Get both models within 5% of each other while net filtration exceeds 3 µL/min. Which slider has to move?',
+  test:c=>c.jT>3&&c.jR>3&&Math.abs(c.jT-c.jR)/c.jT<=0.05, live:c=>`Difference ${c.jT>0?Math.round(100*Math.abs(c.jT-c.jR)/c.jT):'—'}%`},
+ {name:'Transient autotransfusion',desc:'In transient mode, make the revised model show net absorption of at least 2 µL/min.',
+  test:c=>st.mode==='transient'&&c.jR<=-2, live:c=>`Revised J_v = ${sgn(c.jR)} µL/min (${st.mode})`},
+ {name:'Same pressures, more edema',desc:'Without changing any pressure, raise revised net J_v to at least 3× its baseline value (4.2 µL/min or more).',
+  test:c=>['pa','pv','pi','pic','pii','pig'].every(k=>st[k]===BASE[k])&&c.jR>=4.2, live:c=>`Revised J_v = ${sgn(c.jR)} µL/min`}
+];
+const sub=t=>t.replace(/_(\w)/g,'<sub>$1</sub>');
+$('missions').innerHTML=MIS.map((m,i)=>`<div class="mission" id="mis-${i}"><div class="badge">${i+1}</div><div><b>${m.name}</b><div style="font-size:14px">${sub(m.desc)}</div></div><div class="live" id="mis-l-${i}"></div></div>`).join('');
+function checkMissions(c){ MIS.forEach((m,i)=>{ const ok=m.test(c); const el=$('mis-'+i); if(ok) el.classList.add('done'); el.querySelector('.badge').textContent=el.classList.contains('done')?'✓':String(i+1); $('mis-l-'+i).innerHTML=sub(m.live(c)); }); }
+
+/* ---------- Tabs ---------- */
+const tabs={scn:'pane-scn',mis:'pane-mis',notes:'pane-notes'};
+Object.keys(tabs).forEach(k=>$('tab-'+k).onclick=()=>{Object.keys(tabs).forEach(j=>{$('tab-'+j).setAttribute('aria-selected',j===k);$(tabs[j]).hidden=j!==k;});});
+
+syncInputs(); update(); loadScn(false);
+})();
+</script>
+
+</body></html>
